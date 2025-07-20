@@ -10,6 +10,7 @@ const EsphomeApi = require('esphome-native-api');
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, '..', 'dist')));
 
 const HTTP_PORT = process.env.HTTP_PORT || 8080;
 const devicesFile = path.join(__dirname, 'devices.json');
@@ -104,6 +105,11 @@ app.get('/api/devices/:id/status', async (req, res) => {
   device.online = online;
   res.json({ online });
 });
+
+// Serve React app for all remaining routes
+app.get('*', (req, res) =>
+  res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'))
+);
 
 const server = app.listen(HTTP_PORT, '0.0.0.0', () => {
   console.log(`Server listening on ${HTTP_PORT}`);
