@@ -13,5 +13,6 @@ Aplicação fullstack para gerir dispositivos ESPHome na rede local.
 - `npm install` instala dependências
 - `npm run build` compila o frontend para `dist/`
 - `npm start` arranca o servidor
+- `npm run dev` inicia o Vite em modo desenvolvimento (interface em http://localhost:5173 ou na porta indicada pelo Vite)
 
 O servidor expõe API REST e WebSocket para monitorizar dispositivos.
