@@ -10,6 +10,8 @@ const EsphomeApi = require('esphome-native-api');
 const app = express();
 app.use(cors());
 app.use(express.json());
+// Serve the built client files from ../dist when running in production
+app.use(express.static(path.join(__dirname, '..', 'dist')));
 
 const HTTP_PORT = process.env.HTTP_PORT || 8080;
 const devicesFile = path.join(__dirname, 'devices.json');
@@ -103,6 +105,11 @@ app.get('/api/devices/:id/status', async (req, res) => {
   const online = await checkOnline(device.ip, device.port);
   device.online = online;
   res.json({ online });
+});
+
+// SPA fallback: serve index.html for any other route
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'));
 });
 
 const server = app.listen(HTTP_PORT, '0.0.0.0', () => {
