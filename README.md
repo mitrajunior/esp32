@@ -14,4 +14,11 @@ Aplicação fullstack para gerir dispositivos ESPHome na rede local.
 - `npm run build` compila o frontend para `dist/`
 - `npm start` arranca o servidor para produção
 
+Para instalar dependências e iniciar o servidor de produção automaticamente,
+basta executar:
+
+```bash
+bash setup.sh
+```
+
 O servidor expõe API REST e WebSocket para monitorizar dispositivos.
