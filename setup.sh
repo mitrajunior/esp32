@@ -1,23 +1,24 @@
 #!/bin/bash
 set -e
 
-if ! command -v node >/dev/null 2>&1; then
-  echo "Node.js not found, installing..."
+echo "🚀 ESP32 Controller App Setup"
+
+if ! command -v node >/dev/null; then
+  echo "📦 Node.js não encontrado. Instalando..."
   curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
   apt-get install -y nodejs
 fi
 
-pushd backend
-npm install
-popd
+if ! command -v avahi-browse >/dev/null; then
+  echo "📡 Instalando Avahi para mDNS..."
+  apt-get install -y avahi-utils
+fi
 
-pushd frontend
+echo "📦 Instalando dependências NPM..."
 npm install
+
+echo "⚡ Build do frontend..."
 npm run build
-popd
 
-read -p "Port for server [8080]: " PORT
-PORT=${PORT:-8080}
-
-cd backend
-PORT=$PORT npm start
+echo "🚀 Iniciando servidor..."
+npm start
