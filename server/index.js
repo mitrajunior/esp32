@@ -43,8 +43,21 @@ function scanMdns() {
 }
 
 
-function checkOnline(ip, port) {
-  return axios.get(`http://${ip}:${port}`, { timeout: 2000 }).then(() => true).catch(() => false);
+async function checkOnline(ip, port, password) {
+  if (port == 6053) {
+    const client = new EsphomeApi.APIClient(ip, port, password);
+    try {
+      await client.connect();
+      await client.disconnect();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+  return axios
+    .get(`http://${ip}:${port}`, { timeout: 2000 })
+    .then(() => true)
+    .catch(() => false);
 }
 
 app.get('/api/devices', (req, res) => {
@@ -100,7 +113,7 @@ app.get('/api/scan', async (req, res) => {
 app.get('/api/devices/:id/status', async (req, res) => {
   const device = devices.get(req.params.id);
   if (!device) return res.sendStatus(404);
-  const online = await checkOnline(device.ip, device.port);
+  const online = await checkOnline(device.ip, device.port, device.password);
   device.online = online;
   res.json({ online });
 });
@@ -114,7 +127,7 @@ const wss = new WebSocket.Server({ server });
 setInterval(async () => {
   for (const device of devices.values()) {
     const prev = device.online;
-    device.online = await checkOnline(device.ip, device.port);
+    device.online = await checkOnline(device.ip, device.port, device.password);
     if (prev !== device.online) {
       wss.clients.forEach(ws => {
         ws.send(JSON.stringify({ id: device.id, online: device.online }));
