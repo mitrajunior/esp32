@@ -10,7 +10,7 @@ const EsphomeApi = require('esphome-native-api');
 const app = express();
 app.use(cors());
 app.use(express.json());
-// Serve the built client files from ../dist when running in production
+
 app.use(express.static(path.join(__dirname, '..', 'dist')));
 
 const HTTP_PORT = process.env.HTTP_PORT || 8080;
@@ -45,8 +45,21 @@ function scanMdns() {
 }
 
 
-function checkOnline(ip, port) {
-  return axios.get(`http://${ip}:${port}`, { timeout: 2000 }).then(() => true).catch(() => false);
+async function checkOnline(ip, port, password) {
+  if (port == 6053) {
+    const client = new EsphomeApi.APIClient(ip, port, password);
+    try {
+      await client.connect();
+      await client.disconnect();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+  return axios
+    .get(`http://${ip}:${port}`, { timeout: 2000 })
+    .then(() => true)
+    .catch(() => false);
 }
 
 app.get('/api/devices', (req, res) => {
@@ -102,15 +115,12 @@ app.get('/api/scan', async (req, res) => {
 app.get('/api/devices/:id/status', async (req, res) => {
   const device = devices.get(req.params.id);
   if (!device) return res.sendStatus(404);
-  const online = await checkOnline(device.ip, device.port);
+  const online = await checkOnline(device.ip, device.port, device.password);
   device.online = online;
   res.json({ online });
 });
 
-// SPA fallback: serve index.html for any other route
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'));
-});
+
 
 const server = app.listen(HTTP_PORT, '0.0.0.0', () => {
   console.log(`Server listening on ${HTTP_PORT}`);
@@ -121,7 +131,7 @@ const wss = new WebSocket.Server({ server });
 setInterval(async () => {
   for (const device of devices.values()) {
     const prev = device.online;
-    device.online = await checkOnline(device.ip, device.port);
+    device.online = await checkOnline(device.ip, device.port, device.password);
     if (prev !== device.online) {
       wss.clients.forEach(ws => {
         ws.send(JSON.stringify({ id: device.id, online: device.online }));
