@@ -1,85 +1,47 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import axios from 'axios';
 
-const API = 'http://localhost:3001';
-
-export default function App() {
+function App() {
   const [devices, setDevices] = useState([]);
   const [manualIp, setManualIp] = useState('');
-  const [theme, setTheme] = useState('dark');
 
-  const toggleTheme = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    document.documentElement.classList.toggle('dark');
-  };
-
-  const scan = async () => {
-    const res = await fetch(`${API}/devices`);
-    const data = await res.json();
-    setDevices(data);
-  };
-
-  useEffect(() => {
-    scan();
-  }, []);
-
-  const addManual = async () => {
-    if (!manualIp) return;
-    const res = await fetch(`${API}/add-device`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ip: manualIp })
-    });
-    if (res.ok) {
-      const device = await res.json();
-      setDevices(prev => [...prev.filter(d => d.ip !== device.ip), device]);
+  const fetchDevices = async () => {
+    try {
+      const res = await axios.get('/api/devices');
+      setDevices(res.data);
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  const sendAction = async (ip, endpoint) => {
-    await fetch(`${API}/device/${ip}/${endpoint}`, { method: 'POST' });
+  useEffect(() => {
+    fetchDevices();
+  }, []);
+
+  const addDevice = async () => {
+    if (!manualIp) return;
+    await axios.post('/api/add-device', { ip: manualIp });
+    setManualIp('');
+    fetchDevices();
   };
 
   return (
-    <div className="min-h-screen p-4 bg-gray-900 text-white dark:bg-gray-900 dark:text-white">
-      <div className="flex justify-between mb-4">
-        <button onClick={toggleTheme} className="px-3 py-1 bg-gray-700 rounded">
-          Toggle {theme === 'dark' ? 'Light' : 'Dark'}
-        </button>
-        <button onClick={scan} className="px-4 py-2 bg-blue-600 rounded">Scan Rede</button>
-      </div>
-      <div className="flex mb-4 space-x-2">
-        <input
-          className="flex-1 p-2 rounded text-black"
-          placeholder="IP"
-          value={manualIp}
-          onChange={e => setManualIp(e.target.value)}
-        />
-        <button onClick={addManual} className="px-4 py-2 bg-green-600 rounded">Adicionar Manualmente</button>
-      </div>
-      <div className="space-y-4">
-        {devices.map(device => (
-          <div key={device.ip} className="p-4 bg-gray-800 rounded">
-            <h3 className="font-bold flex justify-between">
-              <span>{device.name} ({device.ip})</span>
-              <span className={device.online ? 'text-green-400' : 'text-red-400'}>
-                {device.online ? 'online' : 'offline'}
-              </span>
-            </h3>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {device.functions.map(fn => (
-                <button
-                  key={fn.endpoint}
-                  onClick={() => sendAction(device.ip, fn.endpoint)}
-                  className="px-3 py-1 bg-blue-500 rounded"
-                >
-                  {fn.name}
-                </button>
-              ))}
-            </div>
-          </div>
+    <div className="min-h-screen bg-black text-white p-4">
+      <h1 className="text-2xl mb-4">IoT Controller</h1>
+      <button onClick={fetchDevices} className="bg-blue-500 p-2 rounded mr-2">Forçar Scan da Rede</button>
+      <input value={manualIp} onChange={e => setManualIp(e.target.value)} placeholder="Adicionar IP" className="text-black mr-2 p-1" />
+      <button onClick={addDevice} className="bg-green-700 p-2 rounded">Adicionar</button>
+      <ul className="mt-4">
+        {devices.map(d => (
+          <li key={d.ip} className="border-b border-gray-700 py-2 flex justify-between">
+            <span>{d.name} ({d.ip}) - {d.online ? 'Online' : 'Offline'}</span>
+            <Link to={`/device/${d.ip}`} className="bg-blue-700 p-1 rounded">Abrir Controlo</Link>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }
+
+export default App;
